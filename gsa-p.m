@@ -207,9 +207,8 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 	return exceptional_set, realized_SM_classes, unknown_nodes, handled_curves;
 end function;
 
-/*SpecializationData := function(theta)
-	e,r,u,_ := GaloisSpecialization(theta);
-	groups := {p[2]: p in r} join {p[1]: p in u};
+SpecializationData := function(realized, unknown)
+	groups := {p[2]: p in realized} join {p[1]: p in unknown};
 	factorization_types := {};
 	densities := {};
 	for gp in groups do
@@ -223,4 +222,4 @@ end function;
 		Include(~densities,#stabilizer_union/#gp);
 	end for;
 	return groups, factorization_types, densities;
-end function;*/
+end function;
