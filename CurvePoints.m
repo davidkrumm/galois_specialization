@@ -34,7 +34,7 @@ RationalPoints_genus0 := function(affine_plane_curve)
 	Y := affine_plane_curve;
 	X := ProjectiveClosure(Y);
 	"Attempting easy parametrization";
-	for pt in PointSearch(X,100) do
+	for pt in PointSearch(X,30) do
 		try
 			P1_to_X := ImproveParametrization(Parametrization(X,pt));
 			"Curve parametrized";
@@ -52,7 +52,7 @@ RationalPoints_genus0 := function(affine_plane_curve)
 		"Parametrizing conic";
 		P1_to_C := ImproveParametrization(Parametrization(C,pt));
 		"Curve parametrized";
-		return true, X_to_C*Inverse(P1_to_C);
+		return true, P1_to_C*Inverse(X_to_C);
 	end if;
 	"Conic has no rational point";
 	"Building set of points on curve";
@@ -386,6 +386,7 @@ RationalPoints_via_Chabauty := function(hyperelliptic_curve,curve_points)
 				"Applying MAGMA Chabauty";
 				for J_pt in Points(J:Bound:=1000) do
 					if Order(J_pt) eq 0 then
+						"Chabauty argument complete";
 						return true, Chabauty(J_pt);
 					end if;
 				end for;
