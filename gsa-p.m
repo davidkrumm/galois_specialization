@@ -15,7 +15,7 @@ IsBoundedAbove := function(node, classes)
 	return false;
 end function;
 
-GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis:=[])
+GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis:=[], node_equation:=false)
 	theta := SquarefreePart(poly);
 	disc := Discriminant(theta);
 	assert disc ne 0;
@@ -136,7 +136,11 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 		is_realized := H in {i[2]: i in realized_SM_classes};
 		if not proved and not is_realized then
 			"Unable to classify node";
-			Append(~unknown_nodes,<H,YH>);
+			if node_equation then
+				Append(~unknown_nodes,<H,YH>);
+			else
+				Append(~unknown_nodes,H);
+			end if;
 		end if;
 		if proved then
 			Append(~handled_curves,<H,description>);
@@ -182,8 +186,12 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 		h := queue[1][1]; H := Group(h);
 		if h in dis then
 			"\nClassifying node", h, "as unknown";
-			"Computing curve equation";
-			Append(~unknown_nodes,<H,Y(H)>);
+			if node_equation then
+				"Computing curve equation";
+				Append(~unknown_nodes,<H,Y(H)>);
+			else
+				Append(~unknown_nodes,H);
+			end if;
 		else
 			depth := queue[1][2];
 			if depth ne 0 then
@@ -208,8 +216,12 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 	return exceptional_set, realized_SM_classes, unknown_nodes, handled_curves;
 end function;
 
-SpecializationData := function(realized, unknown)
-	groups := {p[2]: p in realized} join {p[1]: p in unknown};
+SpecializationData := function(realized, unknown : node_equation:=false)
+	if node_equation then
+		groups := {p[2]: p in realized} join {p[1]: p in unknown};
+	else
+		groups := {p[2]: p in realized} join {p : p in unknown};
+	end if;
 	factorization_types := {};
 	densities := {};
 	for gp in groups do
