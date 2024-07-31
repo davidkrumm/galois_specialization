@@ -181,7 +181,8 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 	while #queue ne 0 do
 		h := queue[1][1]; H := Group(h);
 		if h in dis then
-			"\nDisregarding node", h;
+			"\nClassifying node", h, "as unknown";
+			"Computing curve equation";
 			Append(~unknown_nodes,<H,Y(H)>);
 		else
 			depth := queue[1][2];
