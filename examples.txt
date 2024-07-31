@@ -31,4 +31,16 @@ f := DynatomicPolynomial((x^2 - (t + 1)*x + t)/x^2, 4);
 load "gsa-p.m";
 G,_,S := GaloisGroup(f);
 Gsubs := SubgroupLattice(G);
+e,r,u,c := GSAp(f,G,S,Gsubs: dis:=[]);
+
+load "DynamicalModularCurves.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+f := DynatomicPolynomial(t*(x - 1)/x^2, 3);
+load "gsa-p.m";
+G,_,S := GaloisGroup(f);
+Gsubs := SubgroupLattice(G);
+_,r,u,_ := GSAp(f,G,S,Gsubs);
+SpecializationData(r,u);
+
 e,r,u,c := GSAp(f,G,S,Gsubs: dis:=[159]);
