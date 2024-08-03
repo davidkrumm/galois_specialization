@@ -104,7 +104,7 @@ LowDegreePoints := function(affine_plane_curve : quadratic:=true)
 	return Y_pts;
 end function;
 
-RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch:=true)
+RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch:=false)
 	Y := affine_plane_curve;
 	"Computing birational elliptic curve";
 	for pt in LowDegreePoints(Y) do
@@ -494,7 +494,7 @@ end if;
 return false, CurveSearch(Y, height_bound);
 end function;
 
-CurvePoints := function(affine_plane_curve: search_bound:=10^5, do_search:=true)
+CurvePoints := function(affine_plane_curve: search_bound:=10^5, do_search:=false)
 Y := affine_plane_curve;
 factors := {@ f[1] : f in Factorization(DefiningPolynomial(Y)) @};
 points_data := [* *];
