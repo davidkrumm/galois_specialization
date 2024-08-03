@@ -441,7 +441,7 @@ RationalPoints_hyperelliptic := function(hyperelliptic_curve)
 	return false,_;
 end function;
 
-RationalPoints_irreducible := function(affine_plane_curve, height_bound : search:=true)
+RationalPoints_irreducible := function(affine_plane_curve, height_bound : search:=false)
 	Y := affine_plane_curve;
 	assert HasFunctionField(Y);
 	"Curve is irreducible";
