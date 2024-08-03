@@ -5,12 +5,11 @@ load "gsa.m";
 Qt<t> := PolynomialRing(Rationals());
 _<x> := PolynomialRing(Qt);
 
-p3 := (t - 16)*x^6 + 6*t*x^5 + 15*t*x^4 + (20*t + 32)*x^3 + 15*t*x^2 + 6*t*x + (t - 16);
-e,r,u := GSA(p3);
+p := (t - 16)*x^6 + 6*t*x^5 + 15*t*x^4 + (20*t + 32)*x^3 + 15*t*x^2 + 6*t*x + (t - 16);
+e,r,u := GSA(p);
 
-p4 := (2*t - 3)*x^6 - 18*x^5 +(-2*t + 3)*x^4 - 28*x^3 + (-2*t + 3)*x^2 - 18*x + (2*t - 3);
-g,f,d := SpecializationData(p4);
-
+p := (2*t - 3)*x^6 - 18*x^5 +(-2*t + 3)*x^4 - 28*x^3 + (-2*t + 3)*x^2 - 18*x + (2*t - 3);
+e,r,u := GSA(p);
 
 //// GSAp examples ////
 
@@ -41,5 +40,5 @@ f := DynatomicPolynomial(t*(x - 1)/x^2, 3);
 load "gsa-p.m";
 G,_,S := GaloisGroup(f);
 Gsubs := SubgroupLattice(G);
-_,r,u,_ := GSAp(f,G,S,Gsubs);
+_,r,u,_ := GSAp(f,G,S,Gsubs : node_equation:=true);
 g,f,d := SpecializationData(r,u);
