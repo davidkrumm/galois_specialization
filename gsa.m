@@ -15,11 +15,20 @@ IsBoundedAbove := function(node, classes)
 	return false;
 end function;
 
+forward GSAp;
+
+GSA := function(polynomial)
+G,_,S := GaloisGroup(polynomial);
+Gsubs := SubgroupLattice(G);
+e,r,u,c := GSAp(polynomial,G,S,Gsubs);
+return e,r,u;
+end function;
+
 GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis:=[], node_equation:=false)
+	lc := LeadingCoefficient(poly);
 	theta := SquarefreePart(poly);
 	disc := Discriminant(theta);
 	assert disc ne 0;
-	lc := LeadingCoefficient(theta);
 	M := Degree(theta); SM := Sym(M);
 	exceptional_set := {r[1]: r in Roots(disc*lc)};
 	G := galois_group; Gsubs := lattice; S := galois_data;
@@ -216,11 +225,14 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 	return exceptional_set, realized_SM_classes, unknown_nodes, handled_curves;
 end function;
 
-SpecializationData := function(realized, unknown : node_equation:=false)
-	if node_equation then
-		groups := {p[2]: p in realized} join {p[1]: p in unknown};
-	else
-		groups := {p[2]: p in realized} join {p : p in unknown};
+SpecializationData := function(realized, unknown)
+	groups := {p[2]: p in realized};
+	if #unknown gt 0 then
+		if #unknown[1] eq 2 then
+			groups join:= {p[1] : p in unknown};
+		else
+			groups join:= {p : p in unknown};
+		end if;
 	end if;
 	factorization_types := {};
 	densities := {};
