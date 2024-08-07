@@ -377,8 +377,8 @@ RationalPoints_via_Chabauty := function(hyperelliptic_curve,curve_points)
 	"Computing Jacobian rank bound";
 	rb := RankBound(J);
 	"Rank is at most", rb;
-	if rb eq 0 then
-	"Applying rank 0 Chabauty";
+	if rb eq 0 and Genus(X) eq 2 then
+	"Applying MAGMA rank 0 Chabauty";
 		return true, Chabauty0(J);
 	end if;
 	if rb lt Genus(X) then
