@@ -1,9 +1,9 @@
 load "CurvePoints.m";
 
-Specialize := function(poly,v)
+Specialize := function(poly,c)
 	R := Parent(poly);
-	sp_poly := Evaluate(Polynomial([Evaluate(c,v) : c in Coefficients(poly)]), R.1);
-	return sp_poly;
+	specialized_poly := Evaluate(Polynomial([Evaluate(coeff,c) : coeff in Coefficients(poly)]), R.1);
+	return specialized_poly;
 end function;
 
 IsBoundedAbove := function(node, classes)
@@ -15,10 +15,30 @@ IsBoundedAbove := function(node, classes)
 	return false;
 end function;
 
+t_Parametrization := function(description)
+	Y := Codomain(description);
+	DE := DefiningEquations(description);
+	f := DE[1]/DE[3];
+	return Evaluate(f,[Y.1,1]);
+end function;
+
+IntersectParametrizations := function(description1, description2)
+	f := t_Parametrization(description1); Numf:= Numerator(f); Denf:= Denominator(f);
+	g := t_Parametrization(description2); Numg:= Numerator(g); Deng:= Denominator(g);
+	AA := AffineSpace(Rationals(),2);
+	Nf := Evaluate(Numf,[AA.1,1,1]);
+	Df := Evaluate(Denf,[AA.1,1,1]); 
+	Ng := Evaluate(Numg,[AA.2,1,1]);
+	Dg := Evaluate(Deng,[AA.2,1,1]);
+	return Curve(AA,Nf*Dg - Ng*Df),Nf,Df;
+end function;
+
 forward GSAp;
 
 GSA := function(polynomial)
+"\nComputing generic Galois group";
 G,_,S := GaloisGroup(polynomial);
+"Computing lattice of subgroups";
 Gsubs := SubgroupLattice(G);
 e,r,u,c := GSAp(polynomial,G,S,Gsubs);
 return e,r,u;
@@ -37,7 +57,9 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 	unknown_nodes := [* *]; // nodes that could not be realized nor ruled out
 	proved_finite := [* *]; // nodes occurring finitely many times, all known
 	proved_infinite := [* *]; //nodes proved to occur infinitely often
+	proved_parametrizable := [* *]; //nodes whose associated curve is proved rational
 	handled_curves := [* *]; //nodes whose rational points were determined
+	finite_intersections := [* *]; //pairs of nodes whose intersection is proved finite
 	
 	Y := function(H)
 		qH := GaloisSubgroup(S, H);
@@ -45,7 +67,7 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 		AA := AffineSpace(Rationals(),2);
 		poly := Polynomial([Evaluate(Numerator(c), AA.1) : c in Coefficients(qH)]);
 		f := Evaluate(poly, AA.2);
-		return Curve(AA, f), qH;
+		return Curve(AA,f),qH;
 	end function;
 
 	Realize := procedure(node,curve,poly,~proved_infinite,~realized_SM_classes)
@@ -68,7 +90,7 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 		is_realized := H in {i[2]: i in realized_SM_classes};
 		if not is_realized then
 			"Second attempt";
-			test_values := {pt[1] : pt in PointSearch(YH,1000)};
+			test_values := {pt[1] : pt in PointSearch(YH,10^3)};
 			for c in test_values diff exceptional_set do
 				try 
 					Gc := GaloisGroup(Specialize(theta,c));
@@ -134,7 +156,7 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 		if not is_realized then "Node not realized"; end if;
 	end procedure;
 	
-	ClassifyNode := procedure(node,~realized_SM_classes,~unknown_nodes,~handled_curves,~proved_finite,~proved_infinite)
+	ClassifyNode := procedure(node,~realized_SM_classes,~unknown_nodes,~handled_curves,~proved_finite,~proved_infinite,~proved_parametrizable,~finite_intersections)
 		h := node; H := Group(h);
 		"Computing curve equation";
 		YH, qH := Y(H);
@@ -159,7 +181,7 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 				"Classifying nodes below";
 				for c in {pt[1] : pt in description} diff exceptional_set do
 					Gc := GaloisGroup(Specialize(theta,c));
-					is_new_SM_class := forall(i){j:j in realized_SM_classes|not IsConjugate(SM,Gc,j[2])};
+					is_new_SM_class := forall{j:j in realized_SM_classes|not IsConjugate(SM,Gc,j[2])};
 					if is_new_SM_class then
 						Append(~realized_SM_classes, <c,Gc>);
 					end if;
@@ -167,6 +189,62 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 			else
 				"Node proved infinite";
 				Append(~proved_infinite,<h,description>);
+				if Genus(Domain(description)) eq 0 then
+					for i := 1 to #proved_parametrizable do
+						other_node := proved_parametrizable[i][1];
+						if not h le other_node then
+							"Intersecting nodes",h,"and",other_node;
+								map_from_P1 := proved_parametrizable[i][2];
+								meet_curve,num,den := IntersectParametrizations(description,map_from_P1);
+								if IsIrreducible(meet_curve) then
+									proof, desc := RationalPoints_irreducible(meet_curve,search_bound);
+									if proof and Type(desc) eq SetIndx then
+										"Intersection proved finite";
+										Append(~finite_intersections,<h,other_node>);
+										"Classifying nodes below";
+										for pt in desc do
+											c_num := Evaluate(num,[pt[1],pt[2]]);
+											c_den := Evaluate(den,[pt[1],pt[2]]);
+											if c_den ne 0 then
+												c := c_num/c_den;
+												if c notin exceptional_set then
+													Gc := GaloisGroup(Specialize(theta,c));
+													is_new_SM_class := forall{j:j in realized_SM_classes|not IsConjugate(SM,Gc,j[2])};
+													if is_new_SM_class then
+														Append(~realized_SM_classes, <c,Gc>);
+													end if;
+												end if;
+											end if;
+										end for;
+									end if;
+								else //meet_curve is reducible
+									cp := CurvePoints(meet_curve);
+									if forall{u : u in cp | u[1]} and forall{u : u in cp | Type(u[2]) eq SetIndx} then
+										"Intersection proved finite";
+										Append(~finite_intersections,<h,other_node>);
+										"Classifying nodes below";
+										for u in cp do
+											for pt in u[2] do
+												c_num := Evaluate(num,[pt[1],pt[2]]);
+												c_den := Evaluate(den,[pt[1],pt[2]]);
+												if c_den ne 0 then
+													c := c_num/c_den;
+													if c notin exceptional_set then
+														Gc := GaloisGroup(Specialize(theta,c));
+														is_new_SM_class := forall{j:j in realized_SM_classes|not IsConjugate(SM,Gc,j[2])};
+														if is_new_SM_class then
+															Append(~realized_SM_classes, <c,Gc>);
+														end if;
+													end if;
+												end if;
+											end for;
+										end for;
+									end if;
+								end if;
+							end if;
+					end for;
+					Append(~proved_parametrizable,<h,description>);
+				end if;
 			end if;
 		end if;
 	end procedure;
@@ -187,6 +265,7 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 		end if;
 	end for;
 	assert top_realized;
+	"Top node realized";
    
 	//// Breadth-first traversal of Gsubs 
 	visited := [Gsubs ! G];
@@ -207,10 +286,17 @@ GSAp := function(poly,galois_group,galois_data,lattice : search_bound:=10^5, dis
 				"\nClassifying node", h;
 				"Node depth:", depth;
 				is_new_SM_class := forall(i){j:j in realized_SM_classes|not IsConjugate(SM,H,j[2])};
-				if IsBoundedAbove(h,proved_finite) or not is_new_SM_class then
+				is_below_finite_intersection := false;
+				for node_pair in finite_intersections do
+					if h le node_pair[1] and h le node_pair[2] then
+						is_below_finite_intersection := true;
+						break;
+					end if;
+				end for;
+				if not is_new_SM_class or IsBoundedAbove(h,proved_finite) or is_below_finite_intersection then
 					"Node classified previously";
 				else
-					ClassifyNode(h,~realized_SM_classes,~unknown_nodes,~handled_curves,~proved_finite,~proved_infinite);
+					ClassifyNode(h,~realized_SM_classes,~unknown_nodes,~handled_curves,~proved_finite,~proved_infinite,~proved_parametrizable,~finite_intersections);
 				end if;
 			end if;
 		end if;
