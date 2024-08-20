@@ -14,7 +14,7 @@ SmallHeightRationals := function(bound)
 	return bounded_rationals;
 end function;
 
-CurveSearch := function(curve, bound)
+CurveSearch := function(curve,bound)
 Y := curve;
 Y_pts := {@ p : p in PointSearch(Y,bound) @};
 A1 := AffineSpace(Rationals(),1);
@@ -65,20 +65,20 @@ RationalPoints_genus0 := function(affine_plane_curve)
 	return true, Y_pts;
 end function;
 
-LowDegreePoints := function(affine_plane_curve : quadratic:=true)
+LowDegreePoints := function(affine_plane_curve:quadratic:=true)
 	"Building list of rational points";
 	Y := affine_plane_curve;
 	X := ProjectiveClosure(Y);
 	Y_pts := [* *];
-	for pt in PointSearch(X,1000) do
-		Append(~Y_pts,Coordinates(pt));
+	for pt in CurveSearch(Y,10^3) do
+		Append(~Y_pts,Coordinates(X!pt));
 	end for;
 	if quadratic then
 		"Building list of quadratic points";
 		Y_poly := DefiningPolynomial(Y);
 		R := PolynomialRing(Rationals());
 		for i in [1,2] do
-			for r in SmallHeightRationals(4) do
+			for r in SmallHeightRationals(10) do
 				if i eq 1 then
 					Y_poly_specialized := Evaluate(Y_poly,[R.1,r]);
 				else
@@ -113,55 +113,50 @@ RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch
 		XL := ProjectiveClosure(YL);
 		try
 			E, XL_to_E := EllipticCurve(XL,XL ! pt);
-			"Computing analytic rank";
-			an_rank := AnalyticRank(E);
-			if an_rank eq 0 then
-				"Computing algebraic rank";
-				rank, proved := Rank(E);
-				if proved then
-					"Elliptic curve has rank", rank;
-					if rank eq 0 then
-						"Computing torsion group";
-						torsion_group, torsion_map := TorsionSubgroup(E);
-						E_pts := {torsion_map(p):p in torsion_group};
-						"Building set of points on curve";
-						XL_pts := BasePoints(XL_to_E);
-						for p in E_pts do
-							try
-								XL_pts join:= Points(Pullback(XL_to_E,p));
-							catch e;
-							end try;
-						end for;
-						X_pts := {};
-						for p in XL_pts do
-							is_rational := true;
-							for c in Coordinates(p) do
-								if c notin Rationals() then
-									is_rational := false;
-									break c;
-								end if;
-							end for;
-							if is_rational then Include(~X_pts,p); end if;
-						end for;
-						Y_pts := {@ @};
-						for p in X_pts do
-							if p[3] ne 0 then
-								Include(~Y_pts, Y ! [p[1]/p[3],p[2]/p[3]]);
+			rank, proved := Rank(E);
+			if proved then
+				if rank gt 0 then
+					"Curve has positive rank";
+					if L eq Rationals() then
+						"Computing minimal model";
+						Emin, E_to_Emin := MinimalModel(E);
+						YL_to_XL := map<YL->XL|[YL.1,YL.2,1]>;
+						YL_to_Emin := YL_to_XL*XL_to_E*E_to_Emin;
+						return true, YL_to_Emin;
+					else
+						return true, XL_to_E;
+					end if;
+				else
+					"Curve has rank 0";
+					"Computing torsion group";
+					torsion_group, torsion_map := TorsionSubgroup(E);
+					E_pts := {torsion_map(p):p in torsion_group};
+					"Building set of points on curve";
+					XL_pts := BasePoints(XL_to_E);
+					for p in E_pts do
+						try
+							XL_pts join:= Points(Pullback(XL_to_E,p));
+						catch e;
+						end try;
+					end for;
+					X_pts := {};
+					for p in XL_pts do
+						is_rational := true;
+						for c in Coordinates(p) do
+							if c notin Rationals() then
+								is_rational := false;
+								break c;
 							end if;
 						end for;
-						return true, Y_pts;
-					else 
-						"Curve has positive rank";
-						if L eq Rationals() then
-							"Computing minimal model";
-							Emin, E_to_Emin := MinimalModel(E);
-							YL_to_XL := map<YL->XL|[YL.1,YL.2,1]>;
-							YL_to_Emin := YL_to_XL*XL_to_E*E_to_Emin;
-							return true, YL_to_Emin;
-						else
-							return true, XL_to_E;
+						if is_rational then Include(~X_pts,p); end if;
+					end for;
+					Y_pts := {@ @};
+					for p in X_pts do
+						if p[3] ne 0 then
+							Include(~Y_pts, Y ! [p[1]/p[3],p[2]/p[3]]);
 						end if;
-					end if;
+					end for;
+					return true, Y_pts;
 				end if;
 			end if;
 		catch e;
