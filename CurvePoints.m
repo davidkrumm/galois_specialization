@@ -14,13 +14,15 @@ SmallHeightRationals := function(bound)
 	return bounded_rationals;
 end function;
 
+small_rationals := SmallHeightRationals(100);
+
 CurveSearch := function(curve,bound)
 Y := curve;
 Y_pts := {@ p : p in PointSearch(Y,bound) @};
 A1 := AffineSpace(Rationals(),1);
 Y_to_A1_1 := map<Y->A1 | [Y.1]>;
 Y_to_A1_2 := map<Y->A1 | [Y.2]>;
-for c in SmallHeightRationals(300) do
+for c in small_rationals do
 	try
 		Y_pts join:= Points(Pullback(Y_to_A1_1, A1![c]));
 		Y_pts join:= Points(Pullback(Y_to_A1_2, A1![c]));
@@ -33,8 +35,8 @@ end function;
 RationalPoints_genus0 := function(affine_plane_curve)
 	Y := affine_plane_curve;
 	X := ProjectiveClosure(Y);
-	"Attempting easy parametrization";
-	for pt in PointSearch(X,30) do
+	"Attempting small height parametrization";
+	for pt in PointSearch(X,20) do
 		try
 			P1_to_X := ImproveParametrization(Parametrization(X,pt));
 			"Curve parametrized";
@@ -42,7 +44,7 @@ RationalPoints_genus0 := function(affine_plane_curve)
 		catch e;
 		end try;
 	end for;
-	"Easy parametrization failed";
+	"Parametrization failed";
 	"Computing birational conic";
 	C, X_to_C := Conic(X);
 	"Checking for rational point on conic";
@@ -115,18 +117,15 @@ RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch
 			E, XL_to_E := EllipticCurve(XL,XL ! pt);
 			rank, proved := Rank(E);
 			if proved then
-				if rank gt 0 then
+				if rank gt 0 and L eq Rationals() then
 					"Curve has positive rank";
-					if L eq Rationals() then
-						"Computing minimal model";
-						Emin, E_to_Emin := MinimalModel(E);
-						YL_to_XL := map<YL->XL|[YL.1,YL.2,1]>;
-						YL_to_Emin := YL_to_XL*XL_to_E*E_to_Emin;
-						return true, YL_to_Emin;
-					else
-						return true, XL_to_E;
-					end if;
-				else
+					"Computing minimal model";
+					Emin, E_to_Emin := MinimalModel(E);
+					YL_to_XL := map<YL->XL|[YL.1,YL.2,1]>;
+					YL_to_Emin := YL_to_XL*XL_to_E*E_to_Emin;
+					return true, YL_to_Emin;
+				end if;
+				if rank eq 0 then
 					"Curve has rank 0";
 					"Computing torsion group";
 					torsion_group, torsion_map := TorsionSubgroup(E);
