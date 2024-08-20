@@ -169,7 +169,7 @@ RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch
 	end for;
 	"Unable to determine rational points";
 	if not pointsearch then
-		return false,_;
+		return false,false;
 	end if;
 	"Searching for points";
 	return false, CurveSearch(Y, height_bound);
@@ -488,19 +488,19 @@ RationalPoints_irreducible := function(affine_plane_curve, height_bound : search
 	end if;
 "Unable to determine rational points";
 if not search then
-	return false,_;
+	return false,false;
 end if;
 "Searching for points";
 return false, CurveSearch(Y, height_bound);
 end function;
 
 CurvePoints := function(affine_plane_curve: search_bound:=10^5, do_search:=false)
-Y := affine_plane_curve;
-factors := {@ f[1] : f in Factorization(DefiningPolynomial(Y)) @};
-points_data := [* *];
-for f in factors do
-	proved, description := RationalPoints_irreducible(Curve(AmbientSpace(Y),f),search_bound: search:= do_search);
-	Append(~points_data, <proved, description>);
-end for;
-if #points_data eq 1 then return proved, description; else return points_data; end if;
+	Y := affine_plane_curve;
+	factors := {@ f[1] : f in Factorization(DefiningPolynomial(Y)) @};
+	points_data := [* *];
+	for f in factors do
+		proved, description := RationalPoints_irreducible(Curve(AmbientSpace(Y),f),search_bound: search:= do_search);
+		Append(~points_data, <proved, description>);
+	end for;
+	return points_data;
 end function;
