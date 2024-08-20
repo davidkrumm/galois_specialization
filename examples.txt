@@ -1,27 +1,24 @@
-//// GSA examples ////
+//// GSA example ////
 
 load "gsa.m";
-
 Qt<t> := PolynomialRing(Rationals());
 _<x> := PolynomialRing(Qt);
-
-p := (t - 16)*x^6 + 6*t*x^5 + 15*t*x^4 + (20*t + 32)*x^3 + 15*t*x^2 + 6*t*x + (t - 16);
+p := (3*t^2 + 2)*x^6 + (18*t^2 + 24)*x^5 + (45*t^2 + 78)*x^4 + (60*t^2 + 48)*x^3 + (45*t^2 + 78)*x^2 + (18*t^2 + 24)*x + (3*t^2 + 2);
 e,r,u := GSA(p);
-
-p := (2*t - 3)*x^6 - 18*x^5 +(-2*t + 3)*x^4 - 28*x^3 + (-2*t + 3)*x^2 - 18*x + (2*t - 3);
-e,r,u := GSA(p);
+g,f,d := SpecializationData(r,u);
 
 //// GSAp examples ////
 
 load "gsa.m";
-
 Qt<t> := PolynomialRing(Rationals());
 _<x> := PolynomialRing(Qt);
 a := 1; b := t^2;
 f := x^8 + a*x^6 + b*x^4 + a*x^2 + 1;
 G,_,S := GaloisGroup(f);
 Gsubs := SubgroupLattice(G);
-e,r,u,c := GSAp(f,G,S,Gsubs: dis:=[26,16]);
+e,r,u,c := GSAp(f,G,S,Gsubs:skip:=[26,16]);
+g,f,d := SpecializationData(r,u);
+
 
 load "DynamicalModularCurves.m";
 Qt<t> := PolynomialRing(Rationals());
@@ -30,15 +27,5 @@ f := DynatomicPolynomial((x^2 - (t + 1)*x + t)/x^2, 4);
 load "gsa.m";
 G,_,S := GaloisGroup(f);
 Gsubs := SubgroupLattice(G);
-e,r,u,c := GSAp(f,G,S,Gsubs: dis:=[159,148,119,71]);
-g,f,d := SpecializationData(r,u);
-
-load "DynamicalModularCurves.m";
-Qt<t> := PolynomialRing(Rationals());
-_<x> := PolynomialRing(Qt);
-f := DynatomicPolynomial(t*(x - 1)/x^2, 3);
-load "gsa.m";
-G,_,S := GaloisGroup(f);
-Gsubs := SubgroupLattice(G);
-_,r,u,_ := GSAp(f,G,S,Gsubs : node_equation:=true);
+e,r,u,c := GSAp(f,G,S,Gsubs:skip:=[159,148,119,71]);
 g,f,d := SpecializationData(r,u);
