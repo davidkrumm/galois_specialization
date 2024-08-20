@@ -66,25 +66,31 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 		h := node; H := Group(h);
 		YH := curve; qH := poly;
 		test_values := {r[1] : r in Roots(Numerator(Discriminant(qH)))};
-		//test_values join:= {j : j in SmallHeightRationals(5)};
 		"First attempt";
 		is_realized,c := RealizesGroup(test_values,H);
 		if is_realized then
 			"Node realized";
 			Append(~realized, <c,H>);
-		end if;
-		if not is_realized then
+		else
 			RealizeByParents(h,qH,~realized,~is_realized,~proved_infinite);
 		end if;
 		if not is_realized then
 			"Second attempt";
-			test_values := {pt[1] : pt in PointSearch(YH,10^3)};
+			test_values := {pt[1] : pt in PointSearch(YH,10^4)};
 			is_realized,c := RealizesGroup(test_values,H);
 			if is_realized then
 				"Node realized";
 				Append(~realized, <c,H>);
 			else
-				"Node not realized";
+				"Third attempt";
+				test_values := {pt[1] : pt in CurveSearch(YH,1)};
+				is_realized,c := RealizesGroup(test_values,H);
+				if is_realized then
+					"Node realized";
+					Append(~realized, <c,H>);
+				else
+					"Node not realized";
+				end if;
 			end if;
 		end if;
 	end procedure;
