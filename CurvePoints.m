@@ -67,7 +67,7 @@ RationalPoints_genus0 := function(affine_plane_curve)
 	return true, Y_pts;
 end function;
 
-LowDegreePoints := function(affine_plane_curve:quadratic:=true)
+LowDegreePoints := function(affine_plane_curve:quadratic:=false)
 	"Building list of rational points";
 	Y := affine_plane_curve;
 	X := ProjectiveClosure(Y);
@@ -80,7 +80,7 @@ LowDegreePoints := function(affine_plane_curve:quadratic:=true)
 		Y_poly := DefiningPolynomial(Y);
 		R := PolynomialRing(Rationals());
 		for i in [1,2] do
-			for r in SmallHeightRationals(10) do
+			for r in SmallHeightRationals(5) do
 				if i eq 1 then
 					Y_poly_specialized := Evaluate(Y_poly,[R.1,r]);
 				else
