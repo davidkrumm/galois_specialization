@@ -14,15 +14,13 @@ SmallHeightRationals := function(bound)
 	return bounded_rationals;
 end function;
 
-small_rationals := SmallHeightRationals(100);
-
-CurveSearch := function(curve,bound)
+CurveSearch := function(curve,bound1,bound2)
 Y := curve;
-Y_pts := {@ p : p in PointSearch(Y,bound) @};
+Y_pts := {@ p : p in PointSearch(Y,bound1) @};
 A1 := AffineSpace(Rationals(),1);
 Y_to_A1_1 := map<Y->A1 | [Y.1]>;
 Y_to_A1_2 := map<Y->A1 | [Y.2]>;
-for c in small_rationals do
+for c in SmallHeightRationals(bound2) do
 	try
 		Y_pts join:= Points(Pullback(Y_to_A1_1, A1![c]));
 		Y_pts join:= Points(Pullback(Y_to_A1_2, A1![c]));
@@ -36,7 +34,7 @@ RationalPoints_genus0 := function(affine_plane_curve)
 	Y := affine_plane_curve;
 	X := ProjectiveClosure(Y);
 	"Attempting small height parametrization";
-	for pt in PointSearch(X,20) do
+	for pt in CurveSearch(Y,1,20) do
 		try
 			P1_to_X := ImproveParametrization(Parametrization(X,pt));
 			"Curve parametrized";
@@ -72,7 +70,7 @@ LowDegreePoints := function(affine_plane_curve:quadratic:=false)
 	Y := affine_plane_curve;
 	X := ProjectiveClosure(Y);
 	Y_pts := [* *];
-	for pt in CurveSearch(Y,10^3) do
+	for pt in CurveSearch(Y,10^3,50) do
 		Append(~Y_pts,Coordinates(X!pt));
 	end for;
 	if quadratic then
@@ -166,7 +164,7 @@ RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch
 		return false,false;
 	end if;
 	"Searching for points";
-	return false, CurveSearch(Y, height_bound);
+	return false, CurveSearch(Y,height_bound,50);
 end function;
 
 HasRealRoot := function(polynomial)
@@ -485,7 +483,7 @@ if not search then
 	return false,false;
 end if;
 "Searching for points";
-return false, CurveSearch(Y, height_bound);
+return false, CurveSearch(Y,height_bound,50);
 end function;
 
 CurvePoints := function(affine_plane_curve: search_bound:=10^5, do_search:=false)
