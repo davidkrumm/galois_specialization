@@ -80,14 +80,14 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 			end if;
 			if not is_realized then
 				"Second attempt";
-				test_values := {pt[1] : pt in PointSearch(YH,10^4)};
+				test_values := {pt[1] : pt in CurveSearch(YH,1,50)};
 				is_realized,c := RealizesGroup(test_values,H);
 				if is_realized then
 					"Node realized";
 					Append(~realized, <c,H>);
 				else
 					"Third attempt";
-					test_values := {pt[1] : pt in CurveSearch(YH,1)};
+					test_values := {pt[1] : pt in CurveSearch(YH,10^3,50)};
 					is_realized,c := RealizesGroup(test_values,H);
 					if is_realized then
 						"Node realized";
