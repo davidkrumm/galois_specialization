@@ -303,6 +303,7 @@ RationalPoints_via_quotients := function(affine_plane_curve)
 			elif genus eq 1 then
 				if Type(quo) eq CrvEll then
 					"Quotient is elliptic";
+					"Computing rank";
 					rank, proved := Rank(quo);
 					if proved and rank eq 0 then 
 						torsion_group, torsion_map := TorsionSubgroup(quo);
@@ -310,16 +311,22 @@ RationalPoints_via_quotients := function(affine_plane_curve)
 						success := true;
 					end if;
 				else
-					for pt in PointSearch(quo,10^3) do
+					"Computing birational elliptic curve";
+					for pt in CurveSearch(quo,10^3,20) do
 						if IsNonsingular(pt) then
-							E, quo_to_E := EllipticCurve(quo,pt);
-							rank, proved := Rank(E);
-							if proved and rank eq 0 then 
-								torsion_group, torsion_map := TorsionSubgroup(E);
-								E_pts := {torsion_map(p): p in torsion_group};
-								quo_pts := {Pullback(quo_to_E,p): p in E_pts};
-								success := true; break pt;
-							end if;
+							try
+								E, quo_to_E := EllipticCurve(quo,pt);
+								"Computing rank";
+								rank, proved := Rank(E);
+								if proved and rank eq 0 then
+									"Curve has rank 0";
+									torsion_group, torsion_map := TorsionSubgroup(E);
+									E_pts := {torsion_map(p): p in torsion_group};
+									quo_pts := {Pullback(quo_to_E,p): p in E_pts};
+									success := true; break pt;
+								end if;
+							catch e;
+							end try;
 						end if;
 					end for;
 				end if;
