@@ -258,6 +258,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 			end if;
 		end for;
 	end while;
+	"\nUnknown nodes:", unknown;
 	return exceptional_set,realized,unknown,rat_pts;
 end function;
 
