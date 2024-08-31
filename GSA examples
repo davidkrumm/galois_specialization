@@ -1,0 +1,125 @@
+
+//// Awtrey and Jakes, 2019: even sextics
+
+load "gsa.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+
+A := x^6 - 3*t^4*x^2 - t^6;
+e,r,u := GSA(A);
+g,f,d := SpecializationData(r,u);
+
+B := x^6 - 3*t^2*x^2 + t^3;
+e,r,u := GSA(B);
+g,f,d := SpecializationData(r,u);
+
+C := x^6 + t^2*x^4 - t^6;
+e,r,u := GSA(C);
+g,f,d := SpecializationData(r,u);
+
+D := x^6 + (31*t^2)^2*x^2 + (31*t^2)^3;
+e,r,u := GSA(D);
+g,f,d := SpecializationData(r,u);
+
+F := x^6 + (2*t^2)^2*x^2 + (2*t^2)^3;
+e,r,u := GSA(F);
+g,f,d := SpecializationData(r,u);
+
+
+
+//// Awtrey and Lee, 2024: reciprocal sextics
+
+load "gsa.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+
+A := (2*t^2 - 2*t + 13)*x^6 +(-4*t + 2)*x^5 +(-2*t^2 + 2*t + 19)*x^4 +(8*t - 4)*x^3 + (-2*t^2 + 2*t + 19)*x^2 +(-4*t + 2)*x+(2*t^2 - 2*t + 13);
+e,r,u := GSA(A);
+g,f,d := SpecializationData(r,u);
+
+B := (3*t^2 + 1)*x^6 + (18*t^2 - 6)*x^5 + (45*t^2 + 15)*x^4 + (60*t^2 - 20)*x^3 + (45*t^2 + 15)*x^2 + (18*t^2 - 6)*x + (3*t^2 + 1);
+e,r,u := GSA(B);
+g,f,d := SpecializationData(r,u);
+
+C := (t - 16)*x^6 + 6*t*x^5 + 15*t*x^4 + (20*t + 32)*x^3 + 15*t*x^2 + 6*t*x + (t - 16);
+e,r,u := GSA(C);
+g,f,d := SpecializationData(r,u);
+
+D := (2*t - 3)*x^6 - 18*x^5 +(-2*t + 3)*x^4 - 28*x^3 + (-2*t + 3)*x^2 - 18*x + (2*t - 3);
+e,r,u := GSA(D);
+g,f,d := SpecializationData(r,u);
+
+E := (t^3 + 3*t^2 - 1)*x^6 + (6*t^3 + 6*t^2 + 6)*x^5 + (15*t^3 - 3*t^2 - 15)*x^4 + (20*t^3 - 12*t^2 + 20)*x^3 +(15*t^3 - 3*t^2 - 15)*x^2 +(6*t^3 + 6*t^2 + 6)*x + (t^3 + 3*t^2  - 1);
+e,r,u := GSA(E);
+g,f,d := SpecializationData(r,u);
+
+F := t*x^6 +(-2*t - 12)*x^5 - t*x^4 + (4*t - 40)*x^3 - t*x^2 + (-2*t - 12)*x + t;
+e,r,u := GSA(F);
+g,f,d := SpecializationData(r,u);
+
+P := (3*t^2 + 2)*x^6 + (18*t^2 + 24)*x^5 + (45*t^2 + 78)*x^4 + (60*t^2 + 48)*x^3 + (45*t^2 + 78)*x^2 + (18*t^2 + 24)*x + (3*t^2 + 2);
+e,r,u := GSA(P);
+g,f,d := SpecializationData(r,u);
+
+
+
+//// Awtrey and Patane, 2024: even octics
+
+load "gsa.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+
+a := t^3 - 2*t^2 + 4*t - 4;
+b := t^4 - 2*t^3 + 4*t^2 - 8*t + 6;
+f := x^8 + a*x^6 + b*x^4 + a*x^2 + 1;
+e,r,u := GSA(f);
+
+a := t; b := t^2 - 1;
+f := x^8 + a*x^6 + b*x^4 + a*x^2 + 1;
+e,r,u := GSA(f);
+
+a := t; b := 14 - 2*t;
+f := x^8 + a*x^6 + b*x^4 + a*x^2 + 1;
+e,r,u := GSA(f);
+
+a := 1; b := t^2;
+f := x^8 + a*x^6 + b*x^4 + a*x^2 + 1;
+e,r,u := GSA(f);
+
+a := t^2; b := 2 - t^2;
+f := x^8 + a*x^6 + b*x^4 + a*x^2 + 1;
+e,r,u := GSA(f);
+
+
+
+//// Krumm and Lacy, 2024: third dynatomic polynomial of t(x - 1)/x^2
+
+load "DynamicalModularCurves.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+p := DynatomicPolynomial(t*(x - 1)/x^2, 3);
+load "gsa.m";
+e,r,u := GSA(p);
+g,f,d := SpecializationData(r,u);
+
+
+
+//// Division fields of elliptic curves y^2 = x^3 + t
+
+Qt<t> := FunctionField(Rationals());
+_<z> := PolynomialRing(Qt);
+E := EllipticCurve(z^3 + t);
+R<x> := PolynomialRing(Qt);
+DivPoly := Evaluate(DivisionPolynomial(E,6),x);
+_<u> := PolynomialRing(R);
+Du := Evaluate(DivPoly,u);
+q := Resultant(Du,x^2 - u^3 - t);
+TorsionPoly := DivPoly*Evaluate(q,x);
+
+load "gsa.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+DivPoly := Polynomial([Evaluate(Numerator(c), t) : c in Coefficients(DivPoly)]);
+TorsionPoly := Polynomial([Evaluate(Numerator(c), t) : c in Coefficients(TorsionPoly)]);
+tor := &*{p[1]: p in Factorization(TorsionPoly)};
+e,r,u := GSA(tor);
