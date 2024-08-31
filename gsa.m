@@ -27,7 +27,7 @@ MeetParametrizations := function(map1,map2)
 	return Curve(AA,Nf*Dg - Ng*Df),Nf,Df;
 end function;
 
-GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=[],print_curves:=false)
+GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=[],print_curves:=false,g0bound:=10^7)
 	lc := LeadingCoefficient(poly); theta := SquarefreePart(poly); 
 	disc := Discriminant(theta); M := Degree(theta); SM := Sym(M);
 	exceptional_set := {r[1]: r in Roots(disc*lc)};
@@ -163,15 +163,15 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 		end for;
 	end procedure;
 	
-	ClassifyNode := procedure(node,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_curves)
+	ClassifyNode := procedure(node,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_curves,g0bound)
 		h := node; H := Group(h);
 		"Computing curve equation";
 		YH,qH := Y(H);
 		"Attempting to realize node";
 		RealizeNode(h,YH,qH,~realized,~proved_infinite);
-		node_realized := H in {i[2]: i in realized};
+		node_realized := exists{i:i in realized|IsConjugate(SM,H,i[2])};
 		"Analyzing set of rational points";
-		proved, description := RationalPoints_irreducible(YH,search_bound);
+		proved, description := RationalPoints_irreducible(YH,search_bound: genus0bound:=g0bound);
 		if not proved and not node_realized then
 			"Node is unknown";
 			Append(~unknown,H);
@@ -246,7 +246,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 				if is_below_finite_node or is_below_finite_meet then
 					"Node classified previously";
 				else
-					ClassifyNode(h,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_curves);
+					ClassifyNode(h,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_curves,g0bound);
 				end if;
 			end if;
 		end if;
