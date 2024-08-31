@@ -1,0 +1,78 @@
+
+//// Awtrey and Patane, 2024: an even octic
+
+load "gsa.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+a := t^2 + 2; b := 0;
+f := x^8 + a*x^6 + b*x^4 + a*x^2 + 1;
+G,_,S := GaloisGroup(f);
+Gsubs := SubgroupLattice(G);
+e,r,u,c := GSAp(f,G,S,Gsubs:skip:=[58],print_curves:=true);
+g,f,d := SpecializationData(r,u);
+
+
+//// New result: fourth dynatomic polynomial of (x^2 - (t + 1)*x + t)/x^2
+
+load "DynamicalModularCurves.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+f := DynatomicPolynomial((x^2 - (t + 1)*x + t)/x^2, 4);
+load "gsa.m";
+G,_,S := GaloisGroup(f);
+Gsubs := SubgroupLattice(G);
+e,r,u,c := GSAp(f,G,S,Gsubs:skip:=[159,148,119,71]);
+g,f,d := SpecializationData(r,u);
+1 - Maximum(d);
+
+
+//// Krumm and Lacy, 2024: dynatomic polynomials of (2*x - 1)/(t*x^2 - 1)
+
+load "DynamicalModularCurves.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+f := DynatomicPolynomial((2*x - 1)/(t*x^2 - 1), 3);
+load "gsa.m";
+G,_,S := GaloisGroup(f);
+Gsubs := SubgroupLattice(G);
+e,r,u,c := GSAp(f,G,S,Gsubs:skip:=[4,5]);
+g,f,d := SpecializationData(r,u);
+
+
+load "DynamicalModularCurves.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+f := DynatomicPolynomial((2*x - 1)/(t*x^2 - 1), 4);
+load "gsa.m";
+G,_,S := GaloisGroup(f);
+Gsubs := SubgroupLattice(G);
+e,r,u,c := GSAp(f,G,S,Gsubs:skip:=[6,8]);
+g,f,d := SpecializationData(r,u);
+
+
+//// Awtrey and Lee, 2024: a reciprocal sextic
+
+load "gsa.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+
+p := (t + 2)*x^6 + (6*t + 24)*x^5 + (15*t + 78)*x^4 + (20*t + 48)*x^3 + (15*t + 78)*x^2 +(6*t + 24)*x + (t + 2);
+G,_,S := GaloisGroup(p);
+Gsubs := SubgroupLattice(G);
+e,r,u,c := GSAp(p,G,S,Gsubs:skip:=[16,17,9,13,15]);
+g,f,d := SpecializationData(r,u);
+
+
+//// Krumm, 2018: fourth dynatomic polynomial of x^2 + t
+
+load "DynamicalModularCurves.m";
+Qt<t> := PolynomialRing(Rationals());
+_<x> := PolynomialRing(Qt);
+f := DynatomicPolynomial(x^2 + t, 4);
+load "gsa.m";
+G,_,S := GaloisGroup(f);
+Gsubs := SubgroupLattice(G);
+e,r,u,_ := GSAp(f,G,S,Gsubs:skip:=[137,134]);
+g,f,d := SpecializationData(r,u);
+1-Maximum(d);
+
