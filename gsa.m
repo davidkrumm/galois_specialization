@@ -27,7 +27,7 @@ MeetParametrizations := function(map1,map2)
 	return Curve(AA,Nf*Dg - Ng*Df),Nf,Df;
 end function;
 
-GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=[],print_crvs:=false)
+GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=[],print_curves:=false)
 	lc := LeadingCoefficient(poly); theta := SquarefreePart(poly); 
 	disc := Discriminant(theta); M := Degree(theta); SM := Sym(M);
 	exceptional_set := {r[1]: r in Roots(disc*lc)};
@@ -163,7 +163,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 		end for;
 	end procedure;
 	
-	ClassifyNode := procedure(node,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_crvs)
+	ClassifyNode := procedure(node,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_curves)
 		h := node; H := Group(h);
 		"Computing curve equation";
 		YH,qH := Y(H);
@@ -175,7 +175,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 		if not proved and not node_realized then
 			"Node is unknown";
 			Append(~unknown,H);
-			if print_crvs then
+			if print_curves then
 				_<a,b> := PolynomialRing(Rationals(),2);
 				"Node curve:", Evaluate(DefiningPolynomial(Y(Group(h))),[a,b]);
 			end if;
@@ -233,7 +233,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 		if h in skip then
 			"\nClassifying node", h, "as unknown";
 			Append(~unknown,Group(h));
-			if print_crvs then
+			if print_curves then
 			_<a,b> := PolynomialRing(Rationals(),2);
 				"Node curve:", Evaluate(DefiningPolynomial(Y(Group(h))),[a,b]);
 			end if;
@@ -246,7 +246,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 				if is_below_finite_node or is_below_finite_meet then
 					"Node classified previously";
 				else
-					ClassifyNode(h,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_crvs);
+					ClassifyNode(h,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_curves);
 				end if;
 			end if;
 		end if;
@@ -262,12 +262,12 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 	return exceptional_set,realized,unknown,rat_pts;
 end function;
 
-GSA := function(poly)
+GSA := function(poly : pc:=false)
 	"\nComputing generic Galois group";
 	G,_,S := GaloisGroup(poly);
 	"Computing lattice of subgroups";
 	Gsubs := SubgroupLattice(G);
-	e,r,u,c := GSAp(poly,G,S,Gsubs);
+	e,r,u,c := GSAp(poly,G,S,Gsubs: print_curves:=pc);
 	return e,r,u;
 end function;
 
