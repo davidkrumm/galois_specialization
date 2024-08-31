@@ -26,18 +26,7 @@ g,f,d := SpecializationData(r,u);
 1 - Maximum(d);
 
 
-//// Krumm and Lacy, 2024: dynatomic polynomials of (2*x - 1)/(t*x^2 - 1)
-
-load "DynamicalModularCurves.m";
-Qt<t> := PolynomialRing(Rationals());
-_<x> := PolynomialRing(Qt);
-f := DynatomicPolynomial((2*x - 1)/(t*x^2 - 1), 3);
-load "gsa.m";
-G,_,S := GaloisGroup(f);
-Gsubs := SubgroupLattice(G);
-e,r,u,c := GSAp(f,G,S,Gsubs:skip:=[4,5]);
-g,f,d := SpecializationData(r,u);
-
+//// Krumm and Lacy, 2024: fourth dynatomic polynomial of (2*x - 1)/(t*x^2 - 1)
 
 load "DynamicalModularCurves.m";
 Qt<t> := PolynomialRing(Rationals());
@@ -46,7 +35,7 @@ f := DynatomicPolynomial((2*x - 1)/(t*x^2 - 1), 4);
 load "gsa.m";
 G,_,S := GaloisGroup(f);
 Gsubs := SubgroupLattice(G);
-e,r,u,c := GSAp(f,G,S,Gsubs:skip:=[6,8]);
+e,r,u,c := GSAp(f,G,S,Gsubs:skip:=[8],g0bound:=10^8);
 g,f,d := SpecializationData(r,u);
 
 
@@ -75,4 +64,3 @@ Gsubs := SubgroupLattice(G);
 e,r,u,_ := GSAp(f,G,S,Gsubs:skip:=[137,134]);
 g,f,d := SpecializationData(r,u);
 1-Maximum(d);
-
