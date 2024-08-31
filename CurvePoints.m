@@ -41,11 +41,6 @@ end function;
 RationalPoints_genus0 := function(affine_plane_curve)
 	Y := affine_plane_curve;
 	X := ProjectiveClosure(Y);
-	coeff_bound := Maximum({AbsoluteValue(co): co in Coefficients(DefiningPolynomial(Y))});
-	if coeff_bound gt 10^7 then
-		"Curve equation too large";
-		return false,0;
-	end if;
 	"Trying small height parametrization";
 	for pt in CurveSearch(Y,0,50) do
 		try
@@ -462,7 +457,7 @@ RationalPoints_hyperelliptic := function(hyperelliptic_curve)
 	return false,_;
 end function;
 
-RationalPoints_irreducible := function(affine_plane_curve, height_bound : search:=false)
+RationalPoints_irreducible := function(affine_plane_curve,height_bound: search:=false,genus0bound:=10^7)
 	Y := affine_plane_curve;
 	assert HasFunctionField(Y);
 	"Curve is irreducible";
@@ -475,8 +470,15 @@ RationalPoints_irreducible := function(affine_plane_curve, height_bound : search
 		return true, SingularPoints(Y);
 	end if;
 	"Curve is geometrically irreducible";
-	if g eq 0 then return RationalPoints_genus0(Y); end if;
-	if g eq 1 then return RationalPoints_genus1(Y,height_bound : pointsearch:=search); end if;
+	if g eq 0 then
+		coeff_bound := Maximum({AbsoluteValue(co): co in Coefficients(DefiningPolynomial(Y))});
+		if coeff_bound gt genus0bound then
+			"Curve equation too large";
+			return false,0;
+		end if;
+		return RationalPoints_genus0(Y);
+	end if;
+	if g eq 1 then return RationalPoints_genus1(Y,height_bound: pointsearch:=search); end if;
  	"Checking geometrically hyperelliptic";
 	is_geom_hyper, C, Y_to_C := IsGeometricallyHyperelliptic(Y);
 	if is_geom_hyper then
