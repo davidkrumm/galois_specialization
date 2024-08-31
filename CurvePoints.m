@@ -1,5 +1,10 @@
 load "Coleman/coleman.m";
 
+
+Genus1PointSearchBound := 10^3;
+Genus1CurveSearchBound := 50;
+Genus1UseQuadratic := true;
+
 SmallHeightRationals := function(bound)
 	bounded_rationals := [* -1,0,1 *];
 	B := Floor(bound);
@@ -16,7 +21,10 @@ end function;
 
 CurveSearch := function(curve,bound1,bound2)
 Y := curve;
-Y_pts := {@ p : p in PointSearch(Y,bound1) @};
+Y_pts := {@ @};
+if bound1 gt 0 then
+	Y_pts join:= {@ p : p in PointSearch(Y,bound1) @};
+end if;
 A1 := AffineSpace(Rationals(),1);
 Y_to_A1_1 := map<Y->A1 | [Y.1]>;
 Y_to_A1_2 := map<Y->A1 | [Y.2]>;
@@ -33,8 +41,8 @@ end function;
 RationalPoints_genus0 := function(affine_plane_curve)
 	Y := affine_plane_curve;
 	X := ProjectiveClosure(Y);
-	"Attempting small height parametrization";
-	for pt in CurveSearch(Y,1,20) do
+	"Trying small height parametrization";
+	for pt in CurveSearch(Y,0,50) do
 		try
 			P1_to_X := ImproveParametrization(Parametrization(X,pt));
 			"Curve parametrized";
@@ -42,7 +50,6 @@ RationalPoints_genus0 := function(affine_plane_curve)
 		catch e;
 		end try;
 	end for;
-	"Parametrization failed";
 	"Computing birational conic";
 	C, X_to_C := Conic(X);
 	"Checking for rational point on conic";
@@ -65,36 +72,41 @@ RationalPoints_genus0 := function(affine_plane_curve)
 	return true, Y_pts;
 end function;
 
-LowDegreePoints := function(affine_plane_curve:quadratic:=false)
+LowDegreePoints := function(affine_plane_curve)
+	SetClassGroupBounds("GRH");
 	"Building list of rational points";
 	Y := affine_plane_curve;
 	X := ProjectiveClosure(Y);
 	Y_pts := [* *];
-	for pt in CurveSearch(Y,10^3,50) do
+	for pt in CurveSearch(Y,Genus1PointSearchBound,Genus1CurveSearchBound) do
 		Append(~Y_pts,Coordinates(X!pt));
+		if #Y_pts gt 10 then break; end if;
 	end for;
-	if quadratic then
+	if Genus1UseQuadratic then
 		"Building list of quadratic points";
 		Y_poly := DefiningPolynomial(Y);
 		R := PolynomialRing(Rationals());
 		for i in [1,2] do
-			for r in SmallHeightRationals(5) do
+			for r in SmallHeightRationals(10) do
 				if i eq 1 then
 					Y_poly_specialized := Evaluate(Y_poly,[R.1,r]);
 				else
 					Y_poly_specialized := Evaluate(Y_poly,[r,R.1]);
 				end if;
-				if Y_poly_specialized ne 0 and Degree(Y_poly_specialized) ne 0 then
+				if Y_poly_specialized ne 0 and Degree(Y_poly_specialized) gt 0 then
 					for factor in Factorization(Y_poly_specialized) do
 						if Degree(factor[1]) eq 2 then
 							L := NumberField(factor[1]);
 							YL := BaseChange(Y,L);
-							if i eq 1 then
-								YL_pt := YL ! [L.1,r];
-							else
-								YL_pt := YL ! [r,L.1];
+							if Discriminant(L) lt 10^10 and ClassNumber(RingOfIntegers(L)) lt 10 then
+								if i eq 1 then
+									YL_pt := YL ! [L.1,r];
+								else
+									YL_pt := YL ! [r,L.1];
+								end if;
 							end if;
 							Append(~Y_pts,Coordinates(YL_pt));
+							if #Y_pts gt 20 then break i; end if;
 						end if;
 					end for;
 				end if;
@@ -106,55 +118,58 @@ end function;
 
 RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch:=false)
 	Y := affine_plane_curve;
-	"Computing birational elliptic curve";
+	"Computing birational elliptic curves";
 	for pt in LowDegreePoints(Y) do
 		L := Universe(pt);
 		YL := BaseChange(Y,L);
 		XL := ProjectiveClosure(YL);
 		try
+			"Building elliptic curve";
 			E, XL_to_E := EllipticCurve(XL,XL ! pt);
-			rank, proved := Rank(E);
-			if proved then
-				if rank gt 0 and L eq Rationals() then
-					"Curve has positive rank";
-					"Computing minimal model";
-					Emin, E_to_Emin := MinimalModel(E);
-					YL_to_XL := map<YL->XL|[YL.1,YL.2,1]>;
-					YL_to_Emin := YL_to_XL*XL_to_E*E_to_Emin;
-					return true, YL_to_Emin;
-				end if;
-				if rank eq 0 then
-					"Curve has rank 0";
-					"Computing torsion group";
-					torsion_group, torsion_map := TorsionSubgroup(E);
-					E_pts := {torsion_map(p):p in torsion_group};
-					"Building set of points on curve";
-					XL_pts := BasePoints(XL_to_E);
-					for p in E_pts do
-						try
-							XL_pts join:= Points(Pullback(XL_to_E,p));
-						catch e;
-						end try;
-					end for;
-					X_pts := {};
-					for p in XL_pts do
-						is_rational := true;
-						for c in Coordinates(p) do
-							if c notin Rationals() then
-								is_rational := false;
-								break c;
-							end if;
-						end for;
-						if is_rational then Include(~X_pts,p); end if;
-					end for;
-					Y_pts := {@ @};
-					for p in X_pts do
-						if p[3] ne 0 then
-							Include(~Y_pts, Y ! [p[1]/p[3],p[2]/p[3]]);
+			"Computing analytic rank";
+			ar := AnalyticRank(E);
+			if ar gt 3 then continue; end if;
+			"Computing rank bounds";
+			lb,ub := RankBounds(E);
+			if lb gt 0 and L eq Rationals() then
+				"Curve has positive rank";
+				"Computing minimal model";
+				Emin, E_to_Emin := MinimalModel(E);
+				YL_to_XL := map<YL->XL|[YL.1,YL.2,1]>;
+				YL_to_Emin := YL_to_XL*XL_to_E*E_to_Emin;
+				return true, YL_to_Emin;
+			end if;
+			if ub eq 0 then
+				"Curve has rank 0";
+				"Computing torsion group";
+				torsion_group, torsion_map := TorsionSubgroup(E);
+				E_pts := {torsion_map(p):p in torsion_group};
+				"Building set of points on curve";
+				XL_pts := BasePoints(XL_to_E);
+				for p in E_pts do
+					try
+						XL_pts join:= Points(Pullback(XL_to_E,p));
+					catch e;
+					end try;
+				end for;
+				X_pts := {};
+				for p in XL_pts do
+					is_rational := true;
+					for c in Coordinates(p) do
+						if c notin Rationals() then
+							is_rational := false;
+							break c;
 						end if;
 					end for;
-					return true, Y_pts;
-				end if;
+					if is_rational then Include(~X_pts,p); end if;
+				end for;
+				Y_pts := {@ @};
+				for p in X_pts do
+					if p[3] ne 0 then
+						Include(~Y_pts, Y ! [p[1]/p[3],p[2]/p[3]]);
+					end if;
+				end for;
+				return true, Y_pts;
 			end if;
 		catch e;
 		end try;
@@ -305,6 +320,7 @@ RationalPoints_via_quotients := function(affine_plane_curve)
 					"Quotient is elliptic";
 					"Computing rank";
 					rank, proved := Rank(quo);
+					if proved then "Curve has rank", rank; end if;
 					if proved and rank eq 0 then 
 						torsion_group, torsion_map := TorsionSubgroup(quo);
 						quo_pts := {torsion_map(p): p in torsion_group};
@@ -312,14 +328,14 @@ RationalPoints_via_quotients := function(affine_plane_curve)
 					end if;
 				else
 					"Computing birational elliptic curve";
-					for pt in CurveSearch(quo,10^3,20) do
+					for pt in PointSearch(quo,10^3) do
 						if IsNonsingular(pt) then
 							try
 								E, quo_to_E := EllipticCurve(quo,pt);
 								"Computing rank";
 								rank, proved := Rank(E);
-								if proved and rank eq 0 then
-									"Curve has rank 0";
+								if proved then "Curve has rank", rank; end if;
+								if rank eq 0 then
 									torsion_group, torsion_map := TorsionSubgroup(E);
 									E_pts := {torsion_map(p): p in torsion_group};
 									quo_pts := {Pullback(quo_to_E,p): p in E_pts};
@@ -447,7 +463,7 @@ RationalPoints_irreducible := function(affine_plane_curve, height_bound : search
 	"Computing genus";
 	g := Genus(Y);
 	"Curve has genus", g;
-	"Checking for geometrical reducibility";
+	"Checking geometrical reducibility";
 	if not IsAbsolutelyIrreducible(Y) then
 		"Curve is geometrically reducible";
 		return true, SingularPoints(Y);
@@ -455,7 +471,7 @@ RationalPoints_irreducible := function(affine_plane_curve, height_bound : search
 	"Curve is geometrically irreducible";
 	if g eq 0 then return RationalPoints_genus0(Y); end if;
 	if g eq 1 then return RationalPoints_genus1(Y,height_bound : pointsearch:=search); end if;
- 
+ 	"Checking geometrically hyperelliptic";
 	is_geom_hyper, C, Y_to_C := IsGeometricallyHyperelliptic(Y);
 	if is_geom_hyper then
 		"Curve is geometrically hyperelliptic";
@@ -472,6 +488,8 @@ RationalPoints_irreducible := function(affine_plane_curve, height_bound : search
 			is_hyper,X,Y_to_X := IsHyperelliptic(Y);
 			proved, X_pts := RationalPoints_hyperelliptic(X);
 			if proved then
+				"Points determined";
+				"Pulling back rational points";
 				Y_pts := BasePoints(Y_to_X);
 				for pt in X_pts do
 					Y_pts join:= Points(Pullback(Y_to_X,pt));
