@@ -41,6 +41,11 @@ end function;
 RationalPoints_genus0 := function(affine_plane_curve)
 	Y := affine_plane_curve;
 	X := ProjectiveClosure(Y);
+	coeff_bound := Maximum({AbsoluteValue(co): co in Coefficients(DefiningPolynomial(Y))});
+	if coeff_bound gt 10^7 then
+		"Curve equation too large";
+		return false,0;
+	end if;
 	"Trying small height parametrization";
 	for pt in CurveSearch(Y,0,50) do
 		try
@@ -50,6 +55,7 @@ RationalPoints_genus0 := function(affine_plane_curve)
 		catch e;
 		end try;
 	end for;
+	"Curve not parametrized";
 	"Computing birational conic";
 	C, X_to_C := Conic(X);
 	"Checking for rational point on conic";
