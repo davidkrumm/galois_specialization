@@ -24,7 +24,7 @@ Y := curve;
 Y_pts := {@ @};
 if bound1 gt 0 then
 	Y_pts join:= {@ p : p in PointSearch(Y,bound1) @};
-end if;
+end if;	
 A1 := AffineSpace(Rationals(),1);
 Y_to_A1_1 := map<Y->A1 | [Y.1]>;
 Y_to_A1_2 := map<Y->A1 | [Y.2]>;
@@ -129,7 +129,7 @@ RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch
 			E, XL_to_E := EllipticCurve(XL,XL ! pt);
 			"Computing analytic rank";
 			ar := AnalyticRank(E);
-			if ar gt 3 then continue; end if;
+			if ar gt 2 then continue; end if;
 			"Computing rank bounds";
 			lb,ub := RankBounds(E);
 			if lb gt 0 and L eq Rationals() then
@@ -242,7 +242,6 @@ end function;
 forward RationalPoints_hyperelliptic;
 
 RationalPoints_via_covers := function(hyperelliptic_curve)
-	"Analyzing covers";
 	X := hyperelliptic_curve;
 	X_pts := PointsAtInfinity(X);
 	f,_ := HyperellipticPolynomials(X);
@@ -259,8 +258,10 @@ RationalPoints_via_covers := function(hyperelliptic_curve)
 				h_success := false;
 				if Degree(g) gt 4 then
 					Gd := QuadraticTwist(G,d);
+					"Finding points on twist";
 					proved, Gd_pts := RationalPoints_hyperelliptic(Gd);
 					if proved then
+						"Twist points determined";
 						g_success := true;
 						for p in Gd_pts do
 							if p[3] ne 0 then
@@ -270,8 +271,10 @@ RationalPoints_via_covers := function(hyperelliptic_curve)
 					end if;
 				else
 					Hd := QuadraticTwist(H,d);
+					"Finding points on twist";
 					proved, Hd_pts := RationalPoints_hyperelliptic(Hd);
 					if proved then
+						"Twist points determined";
 						h_success := true;
 						for p in Hd_pts do
 							if p[3] ne 0 then
@@ -296,7 +299,6 @@ RationalPoints_via_covers := function(hyperelliptic_curve)
 			end if;
 		end for;
 	end if;
-	"Argument via covers failed";
 	return false,_;
 end function;
 
@@ -309,7 +311,7 @@ RationalPoints_via_quotients := function(affine_plane_curve)
 		success := false;
 		if Order(G ! g) gt 1 then
 			H := AutomorphismGroup(X,[G ! g]);
-			"Computing quotient";
+			"Computing curve quotient";
 			quo, quo_map := CurveQuotient(H);
 			genus := Genus(quo);"Quotient has genus", genus;
 			X_pts := BasePoints(quo_map);
@@ -366,13 +368,13 @@ end function;
 
 ChabautyBound := function(hyper_poly,bad_primes)
 	f := Qx ! hyper_poly;
-	precision := 20;
+	precision := 30;
 	upper_bounds := {};
-	for p in PrimesInInterval(2,20) do
+	for p in PrimesInInterval(2,50) do
 		if p notin bad_primes then
 			try
 				c_data := coleman_data(Qxy.1^2 - f,p,precision);
-				c_bound := #effective_chabauty(c_data:bound:=10^5,e:=50);
+				c_bound := #effective_chabauty(c_data:bound:=10^5,e:=30);
 				Include(~upper_bounds,c_bound);
 			catch e;
 			end try;
@@ -385,7 +387,6 @@ ChabautyBound := function(hyper_poly,bad_primes)
 end function;
 
 RationalPoints_via_Chabauty := function(hyperelliptic_curve,curve_points)
-	"Attempting Chabauty argument";
 	X := hyperelliptic_curve;
 	X_poly,_ := HyperellipticPolynomials(X);
 	X_pts := curve_points;
@@ -402,58 +403,74 @@ RationalPoints_via_Chabauty := function(hyperelliptic_curve,curve_points)
 				"Applying MAGMA Chabauty";
 				for J_pt in Points(J:Bound:=1000) do
 					if Order(J_pt) eq 0 then
+						chab_pts := Chabauty(J_pt);
 						"Chabauty argument complete";
-						return true, Chabauty(J_pt);
+						return true, chab_pts;
 					end if;
 				end for;
 		end if;
 		"Computing Chabauty bound";
 		have_bound, bound := ChabautyBound(X_poly,BadPrimes(X));
-		if have_bound and #X_pts eq bound then
-			return true, X_pts;
+		if have_bound then
+			if #X_pts eq bound then return true, X_pts; end if;
+		else
+			"Unable to get Chabauty bound";
 		end if;
 	end if;
-	"Chabauty argument failed";
 	return false,_;
 end function;
 
 RationalPoints_hyperelliptic := function(hyperelliptic_curve)
 	C := hyperelliptic_curve;
 	X, C_to_X := SimplifiedModel(C);
-	"Searching for rational points on hyperelliptic curve";
+	"Point searching on hyperelliptic curve";
 	X_search := Points(X: Bound:=10^3);
+	"Found",#X_search,"points";
 	if #X_search eq 0 then
-		"No points found\nAttempting to rule out rational points";
+		"Attempting to rule out rational points";
+		"Checking for local obstructions";
 		X_poly,_ := HyperellipticPolynomials(X);
 		local_obstruction := not HasPointsEverywhereLocally(X_poly,2);
 		ruled_out := local_obstruction or #TwoCoverDescent(X) eq 0;
 		if ruled_out then
 			"Hyperelliptic curve has no rational point"; 
 			return true, {@ @};
-		end if;	
-	else 
-		success, X_pts := RationalPoints_via_covers(X);
-		if success then
-			C_pts := {@ Pullback(C_to_X,pt): pt in X_pts @};
-			return true, C_pts;
+		else "Rational points not ruled out";
 		end if;
-		f,_ := HyperellipticPolynomials(X);
-		AA := AffineSpace(Rationals(),2);
-		Y := Curve(AA, AA.2^2 - Evaluate(f,AA.1));
-		"Searching for quotients of curve";
-		success, Y_pts := RationalPoints_via_quotients(Y);
-		if success then
-			X_pts := PointsAtInfinity(X);
-			X_pts join:= {@ X ! Coordinates(pt) : pt in Y_pts @};
-			C_pts := {@ Pullback(C_to_X,pt): pt in X_pts @};
-			return true, C_pts;
-		end if;
-		success, X_pts := RationalPoints_via_Chabauty(X,X_search);
-		if success then
-			C_pts := {@ Pullback(C_to_X,pt): pt in X_pts @};
-			return true, C_pts;
-		end if;
-	end if;		
+	end if;
+	"Attempting argument via covers";
+	success, X_pts := RationalPoints_via_covers(X);
+	if success then
+		"Cover argument succeeded";
+		"Pulling back rational points";
+		C_pts := {@ Pullback(C_to_X,pt): pt in X_pts @};
+		return true, C_pts;
+	else
+			"Cover argument failed";
+	end if;
+	f,_ := HyperellipticPolynomials(X);
+	AA := AffineSpace(Rationals(),2);
+	Y := Curve(AA, AA.2^2 - Evaluate(f,AA.1));
+	"Searching for quotients of curve";
+	success, Y_pts := RationalPoints_via_quotients(Y);
+	if success then
+		"Quotient argument succeeded";
+		"Pulling back rational points";
+		X_pts := PointsAtInfinity(X);
+		X_pts join:= {@ X ! Coordinates(pt) : pt in Y_pts @};
+		C_pts := {@ Pullback(C_to_X,pt): pt in X_pts @};
+		return true, C_pts;
+	end if;
+	"Attempting Chabauty argument";
+	success, X_pts := RationalPoints_via_Chabauty(X,X_search);
+	if success then
+		"Chabauty argument succeeded";
+		"Pulling back rational points";
+		C_pts := {@ Pullback(C_to_X,pt): pt in X_pts @};
+		return true, C_pts;
+	else
+		"Chabauty argument failed";
+	end if;
 	return false,_;
 end function;
 
@@ -507,16 +524,16 @@ RationalPoints_irreducible := function(affine_plane_curve,height_bound: search:=
 		end if;
 	else
 		"Curve is not geometrically hyperelliptic";
-		"Searching for quotients of curve";
+		"Attempting argument via quotients";
 		proved, Y_pts := RationalPoints_via_quotients(Y);
 		if proved then return true, Y_pts; end if;
 	end if;
-"Unable to determine rational points";
-if not search then
-	return false,false;
-end if;
-"Searching for points";
-return false, CurveSearch(Y,height_bound,50);
+	"Unable to determine rational points";
+	if not search then
+		return false,false;
+	end if;
+	"Searching for points";
+	return false, CurveSearch(Y,height_bound,50);
 end function;
 
 CurvePoints := function(affine_plane_curve: search_bound:=10^5, do_search:=false)
