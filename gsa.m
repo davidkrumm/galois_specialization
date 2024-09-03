@@ -27,7 +27,7 @@ MeetParametrizations := function(map1,map2)
 	return Curve(AA,Nf*Dg - Ng*Df),Nf,Df;
 end function;
 
-GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=[],print_curves:=false,g0bound:=10^7)
+GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=[],print_curves:=false,g0bound:=10^9,rbound:=10^15)
 	lc := LeadingCoefficient(poly); theta := SquarefreePart(poly); 
 	disc := Discriminant(theta); M := Degree(theta); SM := Sym(M);
 	exceptional_set := {r[1]: r in Roots(disc*lc)};
@@ -79,21 +79,26 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 				RealizeByParents(h,qH,~realized,~is_realized,~proved_infinite);
 			end if;
 			if not is_realized then
-				"Second attempt";
-				test_values := {pt[1] : pt in CurveSearch(YH,1,50)};
-				is_realized,c := RealizesGroup(test_values,H);
-				if is_realized then
-					"Node realized";
-					Append(~realized, <c,H>);
+				coeff_bound := Maximum({AbsoluteValue(co): co in Coefficients(DefiningPolynomial(YH))});
+				if coeff_bound gt rbound then
+					"Curve equation is too large";
 				else
-					"Third attempt";
-					test_values := {pt[1] : pt in CurveSearch(YH,10^3,50)};
+					"Second attempt";
+					test_values := {pt[1] : pt in CurveSearch(YH,1,30)};
 					is_realized,c := RealizesGroup(test_values,H);
 					if is_realized then
 						"Node realized";
 						Append(~realized, <c,H>);
 					else
-						"Node not realized";
+						"Third attempt";
+						test_values := {pt[1] : pt in CurveSearch(YH,10^3,50)};
+						is_realized,c := RealizesGroup(test_values,H);
+						if is_realized then
+							"Node realized";
+							Append(~realized, <c,H>);
+						else
+							"Node not realized";
+						end if;
 					end if;
 				end if;
 			end if;
@@ -163,7 +168,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 		end for;
 	end procedure;
 	
-	ClassifyNode := procedure(node,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_curves,g0bound)
+	ClassifyNode := procedure(node,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_curves)
 		h := node; H := Group(h);
 		"Computing curve equation";
 		YH,qH := Y(H);
@@ -173,7 +178,6 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 		"Analyzing set of rational points";
 		proved, description := RationalPoints_irreducible(YH,search_bound: genus0bound:=g0bound);
 		if not proved and not node_realized then
-			"Node is unknown";
 			Append(~unknown,H);
 			if print_curves then
 				_<a,b> := PolynomialRing(Rationals(),2);
@@ -231,8 +235,9 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 	while #queue ne 0 do
 		h := queue[1][1]; depth := queue[1][2];
 		if h in skip then
-			"\nClassifying node", h, "as unknown";
-			Append(~unknown,Group(h));
+			"\nSkipping node", h;
+			is_realized_group := exists{i:i in realized|IsConjugate(SM,Group(h),i[2])};
+			if not is_realized_group then Append(~unknown,Group(h)); end if;
 			if print_curves then
 			_<a,b> := PolynomialRing(Rationals(),2);
 				"Node curve:", Evaluate(DefiningPolynomial(Y(Group(h))),[a,b]);
@@ -246,8 +251,19 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 				if is_below_finite_node or is_below_finite_meet then
 					"Node classified previously";
 				else
-					ClassifyNode(h,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_curves,g0bound);
+					ClassifyNode(h,~realized,~unknown,~rat_pts,~proved_finite,~proved_infinite,~parametrized,~finite_meets,~print_curves);
 				end if;
+			end if;
+		end if;
+		is_realized_group := exists{i:i in realized|IsConjugate(SM,Group(h),i[2])};
+		is_unknown_group := exists{i:i in unknown|IsConjugate(SM,Group(h),i)};
+		if is_realized_group then 
+			if depth ne 0 then "Node is realized"; end if;
+		else
+			if is_unknown_group then
+				"Node is unknown";
+			else
+				"Node is unrealizable";
 			end if;
 		end if;
 		Remove(~queue,1);
@@ -258,7 +274,8 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 			end if;
 		end for;
 	end while;
-	"\nUnknown nodes:", unknown;
+	"\nRealized",#realized,"nodes";
+	"Unknown nodes:", unknown;
 	return exceptional_set,realized,unknown,rat_pts;
 end function;
 
