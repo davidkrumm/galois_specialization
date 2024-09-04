@@ -490,7 +490,7 @@ RationalPoints_irreducible := function(affine_plane_curve,height_bound: search:=
 	if g eq 0 then
 		coeff_bound := Maximum({AbsoluteValue(co): co in Coefficients(DefiningPolynomial(Y))});
 		if coeff_bound gt genus0bound then
-			"Curve equation too large";
+			"Curve equation exceeds bounds";
 			return false,0;
 		end if;
 		return RationalPoints_genus0(Y);
