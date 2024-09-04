@@ -27,10 +27,11 @@ MeetParametrizations := function(map1,map2)
 	return Curve(AA,Nf*Dg - Ng*Df),Nf,Df;
 end function;
 
-GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=[],print_curves:=false,g0bound:=10^9,rbound:=10^15)
+GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=[],wit:=[],print_curves:=false,g0bound:=10^9,rbound:=10^15)
 	lc := LeadingCoefficient(poly); theta := SquarefreePart(poly); 
 	disc := Discriminant(theta); M := Degree(theta); SM := Sym(M);
 	exceptional_set := {r[1]: r in Roots(disc*lc)};
+	"\nExceptional set is", exceptional_set;
 	G := galois_group; Gsubs := lattice;
 	"Hasse diagram has", #Gsubs, "nodes";
 	realized := [* *]; // subgroups of SM realized as specializations of G
@@ -73,7 +74,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 			"First attempt";
 			is_realized,c := RealizesGroup(test_values,H);
 			if is_realized then
-				"Node realized";
+				"Node realized by", c;
 				Append(~realized, <c,H>);
 			else
 				RealizeByParents(h,qH,~realized,~is_realized,~proved_infinite);
@@ -81,20 +82,20 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 			if not is_realized then
 				coeff_bound := Maximum({AbsoluteValue(co): co in Coefficients(DefiningPolynomial(YH))});
 				if coeff_bound gt rbound then
-					"Curve equation is too large";
+					"Curve equation exceeds bounds";
 				else
 					"Second attempt";
 					test_values := {pt[1] : pt in CurveSearch(YH,1,30)};
 					is_realized,c := RealizesGroup(test_values,H);
 					if is_realized then
-						"Node realized";
+						"Node realized by", c;
 						Append(~realized, <c,H>);
 					else
 						"Third attempt";
 						test_values := {pt[1] : pt in CurveSearch(YH,10^3,50)};
 						is_realized,c := RealizesGroup(test_values,H);
 						if is_realized then
-							"Node realized";
+							"Node realized by", c;
 							Append(~realized, <c,H>);
 						else
 							"Node not realized";
@@ -129,8 +130,28 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 		end for;
 		is_realized,c := RealizesGroup(test_values,H);
 		if is_realized then
-			"Node realized";
+			"Node realized by", c;
 			Append(~realized, <c,H>);
+		end if;
+	end procedure;
+	
+	RealizeByMap := procedure(group,map,~realized)
+		curve := Domain(map);
+		if Genus(curve) eq 0 then
+			test_values := {};
+			for r in SmallHeightRationals(5) do
+				pt := map(curve![r,1]);
+				if pt[3] ne 0 then
+					c := pt[1]/pt[3];
+					Include(~test_values,c);
+				end if;
+			end for;
+			node_realized,c := RealizesGroup(test_values,group);
+			assert node_realized; 
+			"Node realized by", c;
+			Append(~realized, <c,group>);
+		else 
+			"IMPLEMENT this case";
 		end if;
 	end procedure;
 	
@@ -156,9 +177,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 								if c notin exceptional_set then
 									Gc := GaloisGroup(Specialize(theta,c));
 									is_realized_group := exists{i:i in realized|IsConjugate(SM,Gc,i[2])};
-									if not is_realized_group then
-										Append(~realized, <c,Gc>);
-									end if;
+									if not is_realized_group then Append(~realized, <c,Gc>); end if;
 								end if;
 							end if;
 						end for;
@@ -198,8 +217,11 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 					end if;
 				end for;
 			else
-				"Node proved infinite";
+				"Curve proved infinite";
 				Append(~proved_infinite,<h,description>);
+				if not node_realized then
+					"Realizing node"; RealizeByMap(Group(h),description,~realized);
+				end if;
 				if Genus(Domain(description)) eq 0 then
 					IntersectNodes(h,description,~parametrized,~finite_meets,~realized);
 					Append(~parametrized,<h,description>);
@@ -213,7 +235,8 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
   
   // Compute G_c for c up to height 10
   "Computing small height specializations";
-  for c in SmallHeightRationals(10) do
+  c_values := {c: c in SmallHeightRationals(10)} join {c: c in wit};
+  for c in c_values do
 		if c notin exceptional_set then
 			Gc := GaloisGroup(Specialize(theta,c));
 			is_realized_group := exists{i:i in realized|IsConjugate(SM,Gc,i[2])};
@@ -242,7 +265,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 			_<a,b> := PolynomialRing(Rationals(),2);
 				"Node curve:", Evaluate(DefiningPolynomial(Y(Group(h))),[a,b]);
 			end if;
-		else // h is not in skip
+		else // h is not skipped
 			if depth ne 0 then
 				"\nClassifying node", h;
 				"Node depth:", depth;
@@ -257,13 +280,18 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 		end if;
 		is_realized_group := exists{i:i in realized|IsConjugate(SM,Group(h),i[2])};
 		is_unknown_group := exists{i:i in unknown|IsConjugate(SM,Group(h),i)};
+		is_conjugate_to_skipped := exists{i:i in skip|IsConjugate(SM,Group(h),Group(Gsubs!i))};
 		if is_realized_group then 
 			if depth ne 0 then "Node is realized"; end if;
 		else
 			if is_unknown_group then
 				"Node is unknown";
 			else
-				"Node is unrealizable";
+				if is_conjugate_to_skipped then
+					"Node is unrealizable or skipped";
+				else
+					"Node is unrealizable";
+				end if;
 			end if;
 		end if;
 		Remove(~queue,1);
@@ -274,7 +302,7 @@ GSAp := function(poly,galois_group,galois_data,lattice:search_bound:=10^5,skip:=
 			end if;
 		end for;
 	end while;
-	"\nRealized",#realized,"nodes";
+	"\nRealized",#realized,"groups";
 	"Unknown nodes:", unknown;
 	return exceptional_set,realized,unknown,rat_pts;
 end function;
