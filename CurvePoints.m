@@ -1,7 +1,7 @@
 load "Coleman/coleman.m";
 
 
-Genus1PointSearchBound := 10^3;
+Genus1PointSearchBound := 100;
 Genus1CurveSearchBound := 50;
 Genus1UseQuadratic := true;
 
@@ -55,22 +55,25 @@ RationalPoints_genus0 := function(affine_plane_curve)
 	C, X_to_C := Conic(X);
 	"Checking for rational point on conic";
 	has_point, pt := HasRationalPoint(C);
-	if has_point then
+	if not has_point then
+		"Conic has no rational point";
+		"Building set of points on curve";
+		Y_pts := {@ @};
+		for p in BasePoints(X_to_C) do
+			if p[3] ne 0 then
+				Include(~Y_pts, Y ! [p[1]/p[3],p[2]/p[3]]);
+			end if;
+		end for;
+		"Rational points determined";
+		return true, Y_pts;
+	else
 		"Conic is rational";
 		"Parametrizing conic";
 		P1_to_C := ImproveParametrization(Parametrization(C,pt));
 		"Curve parametrized";
+		"Rational points determined";
 		return true, P1_to_C*Inverse(X_to_C);
 	end if;
-	"Conic has no rational point";
-	"Building set of points on curve";
-	Y_pts := {@ @};
-	for p in BasePoints(X_to_C) do
-		if p[3] ne 0 then
-			Include(~Y_pts, Y ! [p[1]/p[3],p[2]/p[3]]);
-		end if;
-	end for;
-	return true, Y_pts;
 end function;
 
 LowDegreePoints := function(affine_plane_curve)
@@ -117,8 +120,33 @@ LowDegreePoints := function(affine_plane_curve)
 	return Y_pts;
 end function;
 
-RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch:=false)
+RationalPoints_genus1 := function(affine_plane_curve,height_bound : pointsearch:=false)
 	Y := affine_plane_curve;
+	// If Y is a plane cubic, compute its Jacobian.
+	if Degree(Y) eq 3 then
+		"Curve is plane cubic";
+		"Computing Jacobian";
+		X,E,X_to_E := nCovering(GenusOneModel(ProjectiveClosure(Y)));
+		"Computing rank of Jacobian";
+		if RankBound(E) eq 0 then
+			"Jacobian has rank 0";
+			"Building set of points on curve";
+			torsion_group, torsion_map := TorsionSubgroup(E);
+			E_pts := {torsion_map(p):p in torsion_group};
+			X_pts := BasePoints(X_to_E);
+			for p in E_pts do
+				X_pts join:= Points(Pullback(X_to_E,p));
+			end for;
+			Y_pts := {@ @};
+			for p in X_pts do
+				if p[3] ne 0 then
+					Include(~Y_pts, Y ! [p[1]/p[3],p[2]/p[3]]);
+				end if;
+			end for;
+			"Rational points determined";
+			return true, Y_pts;
+		end if;	
+	end if;
 	"Computing birational elliptic curves";
 	for pt in LowDegreePoints(Y) do
 		L := Universe(pt);
@@ -133,19 +161,15 @@ RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch
 			"Computing rank bounds";
 			lb,ub := RankBounds(E);
 			if lb gt 0 and L eq Rationals() then
-				"Curve has positive rank";
-				"Computing minimal model";
-				Emin, E_to_Emin := MinimalModel(E);
-				YL_to_XL := map<YL->XL|[YL.1,YL.2,1]>;
-				YL_to_Emin := YL_to_XL*XL_to_E*E_to_Emin;
-				return true, YL_to_Emin;
+				"Elliptic curve has positive rank";
+				"Rational points determined";
+				return true, XL_to_E;
 			end if;
 			if ub eq 0 then
 				"Curve has rank 0";
 				"Computing torsion group";
 				torsion_group, torsion_map := TorsionSubgroup(E);
 				E_pts := {torsion_map(p):p in torsion_group};
-				"Building set of points on curve";
 				XL_pts := BasePoints(XL_to_E);
 				for p in E_pts do
 					try
@@ -170,6 +194,7 @@ RationalPoints_genus1 := function(affine_plane_curve, height_bound : pointsearch
 						Include(~Y_pts, Y ! [p[1]/p[3],p[2]/p[3]]);
 					end if;
 				end for;
+				"Rational points determined";
 				return true, Y_pts;
 			end if;
 		catch e;
@@ -404,7 +429,6 @@ RationalPoints_via_Chabauty := function(hyperelliptic_curve,curve_points)
 				for J_pt in Points(J:Bound:=1000) do
 					if Order(J_pt) eq 0 then
 						chab_pts := Chabauty(J_pt);
-						"Chabauty argument complete";
 						return true, chab_pts;
 					end if;
 				end for;
@@ -465,7 +489,6 @@ RationalPoints_hyperelliptic := function(hyperelliptic_curve)
 	success, X_pts := RationalPoints_via_Chabauty(X,X_search);
 	if success then
 		"Chabauty argument succeeded";
-		"Pulling back rational points";
 		C_pts := {@ Pullback(C_to_X,pt): pt in X_pts @};
 		return true, C_pts;
 	else
@@ -474,7 +497,7 @@ RationalPoints_hyperelliptic := function(hyperelliptic_curve)
 	return false,_;
 end function;
 
-RationalPoints_irreducible := function(affine_plane_curve,height_bound: search:=false,genus0bound:=10^7)
+RationalPoints_irreducible := function(affine_plane_curve,height_bound: search:=false,genus0bound:=10^10)
 	Y := affine_plane_curve;
 	assert HasFunctionField(Y);
 	"Curve is irreducible";
@@ -484,6 +507,7 @@ RationalPoints_irreducible := function(affine_plane_curve,height_bound: search:=
 	"Checking geometrical reducibility";
 	if not IsAbsolutelyIrreducible(Y) then
 		"Curve is geometrically reducible";
+		"Rational points determined";
 		return true, SingularPoints(Y);
 	end if;
 	"Curve is geometrically irreducible";
@@ -492,8 +516,9 @@ RationalPoints_irreducible := function(affine_plane_curve,height_bound: search:=
 		if coeff_bound gt genus0bound then
 			"Curve equation exceeds bounds";
 			return false,0;
+		else
+			return RationalPoints_genus0(Y);
 		end if;
-		return RationalPoints_genus0(Y);
 	end if;
 	if g eq 1 then return RationalPoints_genus1(Y,height_bound: pointsearch:=search); end if;
  	"Checking geometrically hyperelliptic";
@@ -505,20 +530,21 @@ RationalPoints_irreducible := function(affine_plane_curve,height_bound: search:=
 		"Checking for rational point on conic";
 		if not HasRationalPoint(quo) then
 			"Conic has no rational point";
+			"Rational points determined";
 			return true, BasePoints(Y_to_C);
 		else
-		"Conic has rational points";
-		"Curve is hyperelliptic";
-		"Computing hyperelliptic equation";
-			is_hyper,X,Y_to_X := IsHyperelliptic(Y);
-			proved, X_pts := RationalPoints_hyperelliptic(X);
+			"Conic has rational points";
+			"Curve is hyperelliptic";
+			"Computing hyperelliptic equation";
+			_,H,Y_to_H := IsHyperelliptic(Y);
+			proved,H_pts := RationalPoints_hyperelliptic(H);
 			if proved then
-				"Points determined";
 				"Pulling back rational points";
-				Y_pts := BasePoints(Y_to_X);
-				for pt in X_pts do
-					Y_pts join:= Points(Pullback(Y_to_X,pt));
+				Y_pts := BasePoints(Y_to_H);
+				for pt in H_pts do
+					Y_pts join:= Points(Pullback(Y_to_H,pt));
 				end for;
+				"Rational points determined";
 				return true, Y_pts;
 			end if;
 		end if;
@@ -526,7 +552,9 @@ RationalPoints_irreducible := function(affine_plane_curve,height_bound: search:=
 		"Curve is not geometrically hyperelliptic";
 		"Attempting argument via quotients";
 		proved, Y_pts := RationalPoints_via_quotients(Y);
-		if proved then return true, Y_pts; end if;
+		if proved then 
+			"Rational points determined";
+			return true, Y_pts; end if;
 	end if;
 	"Unable to determine rational points";
 	if not search then
